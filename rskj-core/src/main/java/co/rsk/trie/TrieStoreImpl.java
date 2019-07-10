@@ -44,10 +44,29 @@ public class TrieStoreImpl implements TrieStore {
      */
     @Override
     public void save(Trie trie) {
-        this.store.put(trie.getHash().getBytes(), trie.toMessage());
+        save(trie, true);
+    }
+
+    private void save(Trie trie, boolean forceSaveRoot) {
+        if (trie.isSaved()) {
+            // it is guaranteed that the children of a saved node are also saved
+            return;
+        }
+
+        trie.getLeft().getNode().ifPresent(t -> save(t, false));
+        trie.getRight().getNode().ifPresent(t -> save(t, false));
+
         if (trie.hasLongValue()) {
             saveValue(trie);
         }
+
+        if (trie.isEmbeddable() && !forceSaveRoot) {
+            return;
+        }
+
+        this.store.put(trie.getHash().getBytes(), trie.toMessage());
+
+        trie.setSaved();
     }
 
     @Override

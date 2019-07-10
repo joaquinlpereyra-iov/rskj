@@ -623,6 +623,14 @@ public class Trie {
         this.encoded = null;
     }
 
+    public boolean isSaved() {
+        return saved;
+    }
+
+    public void setSaved() {
+        saved = true;
+    }
+
     // key is the key with exactly collectKeyLen bytes.
     // in non-expanded form (binary)
     // special value Integer.MAX_VALUE means collect them all.
@@ -781,17 +789,12 @@ public class Trie {
         return implicitByte == 0 ? this.left : this.right;
     }
 
-    private static Trie internalRetrieve(TrieStore store, byte[] root) {
-        Trie newTrie = store.retrieve(root);
+    public NodeReference getLeft() {
+        return left;
+    }
 
-        if (newTrie == null) {
-            String log = String.format(ERROR_NON_EXISTENT_TRIE, Hex.toHexString(root));
-            logger.error(log);
-            panicProcessor.panic(PANIC_TOPIC, log);
-            throw new IllegalArgumentException(log);
-        }
-
-        return newTrie;
+    public NodeReference getRight() {
+        return right;
     }
 
     /**
@@ -989,19 +992,7 @@ public class Trie {
         return left.isEmpty() && right.isEmpty();
     }
 
-    public Trie getSnapshotTo(Keccak256 hash) {
-        if (emptyHash.equals(hash)) {
-            return new Trie(this.store);
-        }
-
-        // check if saved to only return this when we know it is in disk storage
-        if (this.saved && getHash().equals(hash)) {
-            return this;
-        }
-
-        return internalRetrieve(this.store, hash.getBytes());
-    }
-
+    @Nullable
     public TrieStore getStore() {
         return this.store;
     }
