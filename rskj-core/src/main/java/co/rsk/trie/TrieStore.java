@@ -21,8 +21,6 @@ package co.rsk.trie;
 public interface TrieStore {
     void save(Trie trie);
 
-    void saveValue(Trie trie);
-
     void flush();
 
     Trie retrieve(byte[] hash);
