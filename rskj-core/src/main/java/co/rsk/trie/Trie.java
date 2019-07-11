@@ -26,13 +26,10 @@ import co.rsk.crypto.Keccak256;
 import co.rsk.metrics.profilers.Metric;
 import co.rsk.metrics.profilers.Profiler;
 import co.rsk.metrics.profilers.ProfilerFactory;
-import co.rsk.panic.PanicProcessor;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.crypto.Keccak256Helper;
 import org.ethereum.db.ByteArrayWrapper;
 import org.ethereum.util.RLP;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
@@ -60,12 +57,8 @@ public class Trie {
     private static final int ARITY = 2;
     private static final int MAX_EMBEDDED_NODE_SIZE_IN_BYTES = 44;
 
-    private static final Logger logger = LoggerFactory.getLogger("newtrie");
     private static final Profiler profiler = ProfilerFactory.getInstance();
-    private static final PanicProcessor panicProcessor = new PanicProcessor();
-    private static final String PANIC_TOPIC = "newtrie";
     private static final String INVALID_ARITY = "Invalid arity";
-    private static final String ERROR_NON_EXISTENT_TRIE = "Error non existent trie with hash %s";
 
     private static final int MESSAGE_HEADER_LENGTH = 2 + Short.BYTES * 2;
     private static final String INVALID_VALUE_LENGTH = "Invalid value length";
