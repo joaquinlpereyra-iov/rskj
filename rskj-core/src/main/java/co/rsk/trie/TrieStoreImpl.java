@@ -20,6 +20,10 @@ package co.rsk.trie;
 
 import org.ethereum.datasource.KeyValueDataSource;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
+
 /**
  * TrieStoreImpl store and retrieve Trie node by hash
  *
@@ -33,6 +37,8 @@ public class TrieStoreImpl implements TrieStore {
 
     // a key value data source to use
     private KeyValueDataSource store;
+
+    Set<Trie> savedTries = Collections.newSetFromMap(new WeakHashMap<>());
 
     public TrieStoreImpl(KeyValueDataSource store) {
         this.store = store;
@@ -48,7 +54,7 @@ public class TrieStoreImpl implements TrieStore {
     }
 
     private void save(Trie trie, boolean forceSaveRoot) {
-        if (trie.isSaved()) {
+        if (savedTries.contains(trie)) {
             // it is guaranteed that the children of a saved node are also saved
             return;
         }
@@ -74,8 +80,7 @@ public class TrieStoreImpl implements TrieStore {
         }
 
         this.store.put(trie.getHash().getBytes(), trie.toMessage());
-
-        trie.setSaved();
+        savedTries.add(trie);
     }
 
     @Override
@@ -94,7 +99,9 @@ public class TrieStoreImpl implements TrieStore {
     public Trie retrieve(byte[] hash) {
         byte[] message = this.store.get(hash);
 
-        return Trie.fromMessage(message, this);
+        Trie trie = Trie.fromMessage(message, this);
+        savedTries.add(trie);
+        return trie;
     }
 
     @Override

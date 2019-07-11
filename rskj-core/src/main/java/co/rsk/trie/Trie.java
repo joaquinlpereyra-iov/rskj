@@ -80,9 +80,6 @@ public class Trie {
     // we need to cache it, otherwise TrieConverter is prohibitively slow.
     private Keccak256 hashOrchid;
 
-    // it is saved to store
-    private boolean saved;
-
     // temporary storage of encoding. Removed after save()
     private byte[] encoded;
 
@@ -239,13 +236,7 @@ public class Trie {
         }
 
         // it doesn't need to clone value since it's retrieved from store or created from message
-        Trie trie = new Trie(store, sharedPath, value, left, right, lvalue, valueHash);
-
-        if (store != null) {
-            trie.saved = true;
-        }
-
-        return trie;
+        return new Trie(store, sharedPath, value, left, right, lvalue, valueHash);
     }
 
     private static Trie fromMessageRskip107(ByteBuffer message, TrieStore store) {
@@ -333,13 +324,7 @@ public class Trie {
             throw new IllegalArgumentException("The message had more data than expected");
         }
 
-        Trie trie = new Trie(store, sharedPath, value, left, right, lvalue, valueHash, treeSize);
-
-        if (store != null) {
-            trie.saved = true;
-        }
-
-        return trie;
+        return new Trie(store, sharedPath, value, left, right, lvalue, valueHash, treeSize);
     }
 
     /**
@@ -593,14 +578,6 @@ public class Trie {
     // because it will expand the node encoding in a memory cache that is ONLY removed after save()
     public boolean isEmbeddable() {
         return isTerminal() && getMessageLength() <= MAX_EMBEDDED_NODE_SIZE_IN_BYTES;
-    }
-
-    public boolean isSaved() {
-        return saved;
-    }
-
-    public void setSaved() {
-        saved = true;
     }
 
     // key is the key with exactly collectKeyLen bytes.

@@ -305,7 +305,7 @@ public class OrchidToUnitrieMigrator {
                 return new Trie(trieStore);
             }
 
-            if (trie.isSaved() && trie.getHash().equals(oldAccountStateRoot)) {
+            if (trie.getHash().equals(oldAccountStateRoot)) {
                 return trie;
             }
 
