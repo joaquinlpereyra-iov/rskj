@@ -117,7 +117,7 @@ public class PendingState implements AccountInformationProvider {
         //Priority heap, and list of transactions are ordered by descending gas price.
         Comparator<Transaction> gasPriceComparator = reverseOrder(Comparator.comparing(Transaction::getGasPrice));
 
-        //First create a map to separate txs by each sender.
+        //First create a either to separate txs by each sender.
         Map<RskAddress, List<Transaction>> senderTxs = transactions.stream().collect(Collectors.groupingBy(Transaction::getSender));
 
         //For each sender, order all txs by nonce and then by hash,

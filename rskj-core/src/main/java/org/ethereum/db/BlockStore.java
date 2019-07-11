@@ -23,8 +23,8 @@ import co.rsk.core.BlockDifficulty;
 import co.rsk.db.RemascCache;
 import org.ethereum.core.Block;
 
-import javax.annotation.Nonnull;
 import java.util.List;
+import org.ethereum.core.BlockHeader;
 
 /**
  * @author Roman Mandeleil
@@ -41,10 +41,17 @@ public interface BlockStore extends RemascCache {
 
     Block getChainBlockByNumber(long blockNumber);
 
-    @Nonnull
     List<Block> getChainBlocksByNumber(long blockNumber);
 
     void removeBlock(Block block);
+
+    /**
+     * Retrieves a block header by its hash.
+     *
+     * @param hash The hash of the block to look up, cannot be null.
+     * @return The block header if found, null if not.
+     */
+    BlockHeader getBlockHeaderByHash(byte[] hash);
 
     Block getBlockByHash(byte[] hash);
 
@@ -54,7 +61,12 @@ public interface BlockStore extends RemascCache {
 
     boolean isBlockExist(byte[] hash);
 
-    List<byte[]> getListHashesEndWith(byte[] hash, long qty);
+    /**
+     * Saves a block header to the block storage.
+     *
+     * @param blockHeader The block header to save, cannot be null.
+     */
+    void saveBlockHeader(BlockHeader blockHeader);
 
     void saveBlock(Block block, BlockDifficulty cummDifficulty, boolean mainChain);
 

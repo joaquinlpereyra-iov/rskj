@@ -23,97 +23,80 @@ import co.rsk.crypto.Keccak256;
 import org.ethereum.core.Block;
 import org.ethereum.crypto.HashUtil;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 public class BlockCacheTest {
 
-    private static final byte[] HASH_1 = HashUtil.sha256(new byte[]{1});
-    private static final byte[] HASH_2 = HashUtil.sha256(new byte[]{2});
-    private static final byte[] HASH_3 = HashUtil.sha256(new byte[]{3});
-    private static final byte[] HASH_4 = HashUtil.sha256(new byte[]{4});
-    private static final byte[] HASH_5 = HashUtil.sha256(new byte[]{5});
+    private static final Keccak256 HASH_1 = new Keccak256(HashUtil.sha256(new byte[]{1}));
+    private static final Keccak256 HASH_2 = new Keccak256(HashUtil.sha256(new byte[]{2}));
+    private static final Keccak256 HASH_3 = new Keccak256(HashUtil.sha256(new byte[]{3}));
+    private static final Keccak256 HASH_4 = new Keccak256(HashUtil.sha256(new byte[]{4}));
+    private static final Keccak256 HASH_5 = new Keccak256(HashUtil.sha256(new byte[]{5}));
 
     @Test
     public void getUnknownBlockAsNull() {
-        BlockCache store = getSubject();
-        assertThat(store.getBlockByHash(HASH_1), nullValue());
+        BlockStoreCache store = getSubject();
+        assertFalse(store.getBlockByHash(HASH_1).isPresent());
     }
 
     @Test
     public void putAndGetValue() {
-        BlockCache store = getSubject();
-        Block block = blockWithHash(new Keccak256(HASH_1));
-        store.addBlock(block);
+        BlockStoreCache store = getSubject();
+        Block wrappedValue = mock(Block.class);
+        store.addBlock(HASH_1, wrappedValue);
 
-        assertThat(store.getBlockByHash(HASH_1), is(block));
+        assertTrue(store.getBlockByHash(HASH_1).isPresent());
+        assertThat(store.getBlockByHash(HASH_1).get(), is(wrappedValue));
     }
 
     @Test
     public void putMoreThanSizeAndCheckCleanup() {
-        BlockCache store = getSubject();
-        store.addBlock(blockWithHash(new Keccak256(HASH_1)));
-        store.addBlock(blockWithHash(new Keccak256(HASH_2)));
-        store.addBlock(blockWithHash(new Keccak256(HASH_3)));
-        store.addBlock(blockWithHash(new Keccak256(HASH_4)));
-        store.addBlock(blockWithHash(new Keccak256(HASH_5)));
+        BlockStoreCache store = getSubject();
+        store.addBlock(HASH_1, mock(Block.class));
+        store.addBlock(HASH_2, mock(Block.class));
+        store.addBlock(HASH_3, mock(Block.class));
+        store.addBlock(HASH_4, mock(Block.class));
+        store.addBlock(HASH_5, mock(Block.class));
 
-        assertThat(store.getBlockByHash(HASH_1), nullValue());
-        assertThat(store.getBlockByHash(HASH_2), notNullValue());
-        assertThat(store.getBlockByHash(HASH_3), notNullValue());
-        assertThat(store.getBlockByHash(HASH_4), notNullValue());
-        assertThat(store.getBlockByHash(HASH_5), notNullValue());
+        assertFalse(store.getBlockByHash(HASH_1).isPresent());
+        assertTrue(store.getBlockByHash(HASH_2).isPresent());
+        assertTrue(store.getBlockByHash(HASH_3).isPresent());
+        assertTrue(store.getBlockByHash(HASH_4).isPresent());
+        assertTrue(store.getBlockByHash(HASH_5).isPresent());
     }
 
     @Test
     public void repeatingValueAtEndPreventsCleanup() {
-        BlockCache store = getSubject();
-        store.addBlock(blockWithHash(new Keccak256(HASH_1)));
-        store.addBlock(blockWithHash(new Keccak256(HASH_2)));
-        store.addBlock(blockWithHash(new Keccak256(HASH_3)));
-        store.addBlock(blockWithHash(new Keccak256(HASH_4)));
-        store.addBlock(blockWithHash(new Keccak256(HASH_1)));
-        store.addBlock(blockWithHash(new Keccak256(HASH_5)));
+        BlockStoreCache store = getSubject();
+        store.addBlock(HASH_1, mock(Block.class));
+        store.addBlock(HASH_2, mock(Block.class));
+        store.addBlock(HASH_3, mock(Block.class));
+        store.addBlock(HASH_4, mock(Block.class));
+        store.addBlock(HASH_5, mock(Block.class));
+        store.addBlock(HASH_1, mock(Block.class));
+        store.addBlock(HASH_5, mock(Block.class));
 
-        assertThat(store.getBlockByHash(HASH_1), notNullValue());
-        assertThat(store.getBlockByHash(HASH_2), nullValue());
-        assertThat(store.getBlockByHash(HASH_3), notNullValue());
-        assertThat(store.getBlockByHash(HASH_4), notNullValue());
-        assertThat(store.getBlockByHash(HASH_5), notNullValue());
-    }
-
-    @Test
-    public void addAndRetrieveBlock() {
-        BlockCache store = getSubject();
-        Block block = Mockito.mock(Block.class);
-        when(block.getHash()).thenReturn(new Keccak256(HASH_1));
-        store.addBlock(block);
-
-        assertThat(store.getBlockByHash(HASH_1), is(block));
+        assertTrue(store.getBlockByHash(HASH_1).isPresent());
+        assertFalse(store.getBlockByHash(HASH_2).isPresent());
+        assertTrue(store.getBlockByHash(HASH_3).isPresent());
+        assertTrue(store.getBlockByHash(HASH_4).isPresent());
+        assertTrue(store.getBlockByHash(HASH_5).isPresent());
     }
 
     @Test
     public void addAndRemoveBlock() {
-        BlockCache store = getSubject();
-        Block block = Mockito.mock(Block.class);
-        when(block.getHash()).thenReturn(new Keccak256(HASH_1));
-        store.addBlock(block);
-        store.removeBlock(block);
+        BlockStoreCache store = getSubject();
+        Block wrappedValue = mock(Block.class);
+        store.addBlock(HASH_1, wrappedValue);
+        store.removeValue(HASH_1);
 
-        assertThat(store.getBlockByHash(HASH_1), nullValue());
+        assertFalse(store.getBlockByHash(HASH_1).isPresent());
     }
 
-    private BlockCache getSubject() {
-        return new BlockCache(4);
-    }
-
-
-    private static Block blockWithHash(Keccak256 hash) {
-        Block mock = Mockito.mock(Block.class);
-        when(mock.getHash()).thenReturn(hash);
-        return mock;
+    private BlockStoreCache getSubject() {
+        return new BlockStoreCache(4);
     }
 }

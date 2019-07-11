@@ -19,17 +19,28 @@
 
 package org.ethereum.db;
 
+import static co.rsk.core.BlockDifficulty.ZERO;
+
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.metrics.profilers.Metric;
 import co.rsk.metrics.profilers.Profiler;
 import co.rsk.metrics.profilers.ProfilerFactory;
-import co.rsk.net.BlockCache;
+import co.rsk.net.BlockStoreCache;
 import co.rsk.remasc.Sibling;
 import co.rsk.util.MaxSizeHashMap;
-import com.google.common.annotations.VisibleForTesting;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.math.BigInteger;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.ethereum.core.Block;
-import org.ethereum.core.BlockFactory;
 import org.ethereum.core.BlockHeader;
 import org.ethereum.datasource.KeyValueDataSource;
 import org.mapdb.DB;
@@ -38,47 +49,43 @@ import org.mapdb.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static co.rsk.core.BlockDifficulty.ZERO;
-
+/**
+ * <p>IndexedBlockStore handles the block storage. There are two main storages: an index by block number which might
+ * have more than one block for a certain block number and a storage by block hash.</p>
+ *
+ * <p>The storage by hash stores two types of values, block headers and full blocks. A full block contains its header
+ * and has the same hash, to avoid overwriting the value it's important to verify when saving headers that the block
+ * was not stored previously.</p>
+ */
 public class IndexedBlockStore implements BlockStore {
 
     private static final Logger logger = LoggerFactory.getLogger("general");
     private static final Profiler profiler = ProfilerFactory.getInstance();
 
-    private final BlockCache blockCache;
+    private final BlockStoreCache blockStoreCache;
     private final MaxSizeHashMap<Keccak256, Map<Long, List<Sibling>>> remascCache;
 
     private final Map<Long, List<BlockInfo>> index;
     private final DB indexDB;
     private final KeyValueDataSource blocks;
-    private final BlockFactory blockFactory;
+    private final BlockStoreEncoder blockStoreEncoder;
 
     public IndexedBlockStore(
-            BlockFactory blockFactory,
-            Map<Long, List<BlockInfo>> index,
+            BlockStoreEncoder blockStoreEncoder, Map<Long, List<BlockInfo>> index,
             KeyValueDataSource blocks,
-            DB indexDB) {
+            DB indexDB, BlockStoreCache blockStoreCache,
+            MaxSizeHashMap<Keccak256, Map<Long, List<Sibling>>> remascCache) {
+        this.blockStoreEncoder = blockStoreEncoder;
         this.index = index;
         this.blocks = blocks;
         this.indexDB  = indexDB;
-        this.blockFactory = blockFactory;
-        //TODO(lsebrie): move these maps creation outside blockstore,
-        // remascCache should be an external component and not be inside blockstore
-        this.blockCache = new BlockCache(5000);
-        this.remascCache = new MaxSizeHashMap<>(50000, true);
+        this.blockStoreCache = blockStoreCache;
+        this.remascCache = remascCache;
     }
 
     @Override
     public synchronized void removeBlock(Block block) {
-        this.blockCache.removeBlock(block);
+        this.blockStoreCache.removeValue(block.getHash());
         this.remascCache.remove(block.getHash());
         this.blocks.delete(block.getHash().getBytes());
 
@@ -204,6 +211,25 @@ public class IndexedBlockStore implements BlockStore {
         profiler.stop(metric);
     }
 
+    /**
+     * Stores a block header to the hash block store. If the hash is already stored nothing is done.
+     * The header is also saved to a local cache.
+     *
+     * @param blockHeader The block header to save, cannot be null.
+     */
+    @Override
+    public synchronized void saveBlockHeader(BlockHeader blockHeader) {
+        Keccak256 hash = blockHeader.getHash();
+        byte[] hashBytes = hash.getBytes();
+        if (!getDSValue(hashBytes).isPresent()) {
+            blocks.put(hashBytes, blockStoreEncoder.encodeBlockHeader(blockHeader));
+        }
+
+        if (!blockStoreCache.getBlockHeaderByHash(hash).isPresent()) {
+            blockStoreCache.addBlockHeader(hash, blockHeader);
+        }
+    }
+
     @Override
     public synchronized void saveBlock(Block block, BlockDifficulty cummDifficulty, boolean mainChain) {
         List<BlockInfo> blockInfos = index.get(block.getNumber());
@@ -228,11 +254,13 @@ public class IndexedBlockStore implements BlockStore {
         blockInfo.setHash(block.getHash().getBytes());
         blockInfo.setMainChain(mainChain);
 
-        if (blocks.get(block.getHash().getBytes()) == null) {
-            blocks.put(block.getHash().getBytes(), block.getEncoded());
+        Optional<byte[]> existingValue = getDSValue(block.getHash().getBytes());
+        if (!existingValue.isPresent() || !existingValue.flatMap(blockStoreEncoder::decodeBlock).isPresent()) {
+            blocks.put(block.getHash().getBytes(), blockStoreEncoder.encodeBlock(block));
         }
+
         index.put(block.getNumber(), blockInfos);
-        blockCache.addBlock(block);
+        blockStoreCache.addBlock(block.getHash(), block);
         remascCache.put(block.getHash(), getSiblingsFromBlock(block));
     }
 
@@ -276,37 +304,65 @@ public class IndexedBlockStore implements BlockStore {
         return null;
     }
 
+    /**
+     * Retrieves a block header by its hash value.
+     *
+     * @param hash The hash of the block to look up, must be a valid Keccak256 byte array key.
+     *
+     * @return The block header if found, null if not.
+     */
+    @Override
+    public synchronized BlockHeader getBlockHeaderByHash(byte[] hash) {
+        Keccak256 blockHeaderHash = new Keccak256(hash);
+        Optional<BlockHeader> cachedHeader = blockStoreCache.getBlockHeaderByHash(blockHeaderHash);
+        if (cachedHeader.isPresent()) {
+            return cachedHeader.get();
+        }
+
+        Optional<BlockHeader> blockHeader = getDSValue(hash).flatMap(blockStoreEncoder::decodeBlockHeader);
+        blockHeader.ifPresent(header -> blockStoreCache.addBlockHeader(blockHeaderHash, header));
+        return blockHeader.orElse(null);
+    }
+
+
     @Override
     public synchronized Block getBlockByHash(byte[] hash) {
-
-        Block block = getBlock(hash);
-        if (block == null) {
+        Optional<Block> optionalBlock = getBlock(hash);
+        if (!optionalBlock.isPresent()) {
             return null;
         }
 
-        blockCache.addBlock(block);
+        Block block = optionalBlock.get();
+        blockStoreCache.addBlock(block.getHash(), block);
         remascCache.put(block.getHash(), getSiblingsFromBlock(block));
         return block;
     }
 
-    private synchronized Block getBlock(byte[] hash) {
-        Block block = this.blockCache.getBlockByHash(hash);
+    /**
+     * Retrieves a block from the cache or the data source.
+     *
+     * @param hash The hash too look up the block with, cannot be null.
+     * @return A block optional, empty if not found.
+     */
+    private synchronized Optional<Block> getBlock(byte[] hash) {
+        Optional<Block> cacheValue = this.blockStoreCache.getBlockByHash(new Keccak256(hash));
+        return cacheValue.isPresent() ? cacheValue : getDSValue(hash).flatMap(blockStoreEncoder::decodeBlock);
+    }
 
-        if (block != null) {
-            return block;
-        }
-
-        byte[] blockRlp = blocks.get(hash);
-        if (blockRlp == null) {
-            return null;
-        }
-
-        return blockFactory.decodeBlock(blockRlp);
+    /**
+     * Wraps in an optional the retrieved bytes value from the key value data source.
+     * This method should be used instead of accessing the data source directly.
+     *
+     * @param hash The key to look up the stored values, cannot be null.
+     * @return The wrapped key value response.
+     */
+    private Optional<byte[]> getDSValue(byte[] hash) {
+        return Optional.ofNullable(blocks.get(hash));
     }
 
     @Override
     public synchronized Map<Long, List<Sibling>> getSiblingsFromBlockByHash(Keccak256 hash) {
-        return this.remascCache.computeIfAbsent(hash, key -> getSiblingsFromBlock(getBlock(key.getBytes())));
+        return this.remascCache.computeIfAbsent(hash, key -> getSiblingsFromBlock(getBlock(key.getBytes()).get()));
     }
 
     @Override
@@ -340,40 +396,6 @@ public class IndexedBlockStore implements BlockStore {
     @Override
     public synchronized long getMaxNumber() {
         return (long)index.size() - 1L;
-    }
-
-    @Override
-    public synchronized List<byte[]> getListHashesEndWith(byte[] hash, long number){
-
-        List<Block> blocks = getListBlocksEndWith(hash, number);
-        List<byte[]> hashes = new ArrayList<>(blocks.size());
-
-        for (Block b : blocks) {
-            hashes.add(b.getHash().getBytes());
-        }
-
-        return hashes;
-    }
-
-    private synchronized List<Block> getListBlocksEndWith(byte[] hash, long qty) {
-        Block block = getBlockByHash(hash);
-
-        if (block == null) {
-            return new ArrayList<>();
-        }
-
-        List<Block> blocks = new ArrayList<>((int) qty);
-
-        for (int i = 0; i < qty; ++i) {
-
-            blocks.add(block);
-            block = getBlockByHash(hash);
-            if (block == null) {
-                break;
-            }
-        }
-
-        return blocks;
     }
 
     @Override
@@ -444,31 +466,6 @@ public class IndexedBlockStore implements BlockStore {
 
             --currentLevel;
         }
-    }
-
-    @VisibleForTesting
-    public synchronized List<byte[]> getListHashesStartWith(long number, long maxBlocks) {
-
-        List<byte[]> result = new ArrayList<>();
-
-        int i;
-        for (i = 0; i < maxBlocks; ++i) {
-            List<BlockInfo> blockInfos =  index.get(number);
-            if (blockInfos == null) {
-                break;
-            }
-
-            for (BlockInfo blockInfo : blockInfos) {
-                if (blockInfo.isMainChain()) {
-                    result.add(blockInfo.getHash().getBytes());
-                    break;
-                }
-            }
-
-            ++number;
-        }
-
-        return result;
     }
 
     public static class BlockInfo implements Serializable {

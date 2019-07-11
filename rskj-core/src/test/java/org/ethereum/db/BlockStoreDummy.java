@@ -22,13 +22,13 @@ package org.ethereum.db;
 import co.rsk.core.BlockDifficulty;
 import co.rsk.crypto.Keccak256;
 import co.rsk.remasc.Sibling;
-import org.ethereum.core.Block;
-import org.ethereum.crypto.HashUtil;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.ethereum.core.Block;
+import org.ethereum.core.BlockHeader;
+import org.ethereum.crypto.HashUtil;
 
 /**
  * @author Roman Mandeleil
@@ -68,11 +68,6 @@ public class BlockStoreDummy implements BlockStore {
     }
 
     @Override
-    public List<byte[]> getListHashesEndWith(byte[] hash, long qty) {
-        return null;
-    }
-
-    @Override
     public void saveBlock(Block block, BlockDifficulty cummDifficulty, boolean mainChain) {
 
     }
@@ -100,6 +95,14 @@ public class BlockStoreDummy implements BlockStore {
     @Override
     public void reBranch(Block forkBlock) {
 
+    }
+
+    public void saveBlockHeader(BlockHeader blockHeader) {
+
+    }
+
+    public  BlockHeader getBlockHeaderByHash(byte[] hash) {
+        return null;
     }
 
     @Override

@@ -25,12 +25,18 @@ import co.rsk.core.TransactionExecutorFactory;
 import co.rsk.core.bc.BlockChainImpl;
 import co.rsk.core.bc.BlockExecutor;
 import co.rsk.core.bc.TransactionPoolImpl;
+import co.rsk.crypto.Keccak256;
 import co.rsk.db.RepositoryLocator;
 import co.rsk.db.StateRootHandler;
+import co.rsk.net.BlockStoreCache;
+import co.rsk.remasc.Sibling;
 import co.rsk.trie.TrieConverter;
+import co.rsk.util.MaxSizeHashMap;
 import co.rsk.validators.DummyBlockValidator;
+import java.util.List;
 import org.ethereum.datasource.HashMapDB;
 import org.ethereum.datasource.KeyValueDataSource;
+import org.ethereum.db.BlockStoreEncoder;
 import org.ethereum.db.IndexedBlockStore;
 import org.ethereum.db.ReceiptStore;
 import org.ethereum.db.ReceiptStoreImpl;
@@ -48,7 +54,9 @@ public class ImportLightTest {
 
     public static BlockChainImpl createBlockchain(Genesis genesis, TestSystemProperties config, Repository repository) {
         BlockFactory blockFactory = new BlockFactory(config.getActivationConfig());
-        IndexedBlockStore blockStore = new IndexedBlockStore(blockFactory, new HashMap<>(), new HashMapDB(), null);
+        BlockStoreEncoder blockStoreEncoder = new BlockStoreEncoder(blockFactory);
+        IndexedBlockStore blockStore = new IndexedBlockStore(blockStoreEncoder, new HashMap<>(), new HashMapDB(), null,
+                new BlockStoreCache(5000), new MaxSizeHashMap<Keccak256, Map<Long, List<Sibling>>>(50000, true));
 
         CompositeEthereumListener listener = new TestCompositeEthereumListener();
 
