@@ -1300,7 +1300,7 @@ public class Web3ImplTest {
         BlockChainImpl blockChain = world.getBlockChain();
         TransactionExecutorFactory transactionExecutorFactory = buildTransactionExecutorFactory(blockChain);
         TransactionPool transactionPool = new TransactionPoolImpl(config, world.getRepositoryLocator(), blockChain.getBlockStore(), blockFactory, null, transactionExecutorFactory, 10, 100);
-        RepositoryLocator repositoryLocator = new RepositoryLocator(world.getRepository(), world.getStateRootHandler());
+        RepositoryLocator repositoryLocator = new RepositoryLocator(world.getRepository().getTrie().getStore(), world.getStateRootHandler());
         return createWeb3(
                 Web3Mocks.getMockEthereum(), blockChain, repositoryLocator, transactionPool, blockChain.getBlockStore(), blockProcessor,
                 new SimpleConfigCapabilities(), receiptStore

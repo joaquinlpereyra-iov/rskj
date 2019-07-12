@@ -149,7 +149,7 @@ public class TestRunner {
                 new ProgramInvokeFactoryImpl(),
                 null);
         StateRootHandler stateRootHandler = new StateRootHandler(config.getActivationConfig(), new TrieConverter(), new HashMapDB(), new HashMap<>());
-        RepositoryLocator repositoryLocator = new RepositoryLocator(repository, stateRootHandler);
+        RepositoryLocator repositoryLocator = new RepositoryLocator(repository.getTrie().getStore(), stateRootHandler);
 
         TransactionPoolImpl transactionPool = new TransactionPoolImpl(config, repositoryLocator, null, blockFactory, listener, transactionExecutorFactory, 10, 100);
 
@@ -164,7 +164,7 @@ public class TestRunner {
                 1,
                 new BlockExecutor(
                         config.getActivationConfig(),
-                        new RepositoryLocator(repository, stateRootHandler),
+                        new RepositoryLocator(repository.getTrie().getStore(), stateRootHandler),
                         stateRootHandler,
                         transactionExecutorFactory
                 ),
@@ -677,7 +677,7 @@ public class TestRunner {
     }
 
     private static Repository createRepository() {
-        return new MutableRepository(new MutableTrieCache(new MutableTrieImpl(new Trie())));
+        return new MutableRepository(new MutableTrieCache(new MutableTrieImpl(null, new Trie())));
     }
 
     public Block build(

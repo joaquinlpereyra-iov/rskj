@@ -38,9 +38,11 @@ public class MutableTrieImpl implements MutableTrie {
 
     private Trie trie;
     private TrieKeyMapper trieKeyMapper = new TrieKeyMapper();
+    private TrieStore trieStore;
 
-    public MutableTrieImpl(Trie atrie) {
-        trie = atrie;
+    public MutableTrieImpl(TrieStore trieStore, Trie trie) {
+        this.trieStore = trieStore;
+        this.trie = trie;
     }
 
     @Override
@@ -105,9 +107,8 @@ public class MutableTrieImpl implements MutableTrie {
 
     @Override
     public void save() {
-        TrieStore store = trie.getStore();
-        if (store != null) {
-            store.save(trie);
+        if (trieStore != null) {
+            trieStore.save(trie);
         }
     }
 

@@ -26,6 +26,7 @@ import co.rsk.db.MutableTrieImpl;
 import co.rsk.peg.BridgeSupportFactory;
 import co.rsk.peg.RepositoryBtcBlockStoreWithCache;
 import co.rsk.trie.Trie;
+import co.rsk.trie.TrieStore;
 import co.rsk.trie.TrieStoreImpl;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.config.blockchain.upgrades.ActivationConfig;
@@ -62,9 +63,9 @@ public class CodeReplaceTest {
 
     @Test
     public void replaceCodeTest1() throws InterruptedException {
-
         BigInteger nonce = config.getNetworkConstants().getInitialNonce();
-        Repository repository = new MutableRepository(new MutableTrieImpl(new Trie(new TrieStoreImpl(new HashMapDB()))));
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        Repository repository = new MutableRepository(new MutableTrieImpl(trieStore, new Trie(trieStore)));
         BlockChainImpl blockchain = org.ethereum.core.ImportLightTest.createBlockchain(
                 new TestGenesisLoader(
                         repository, getClass().getResourceAsStream("/genesis/genesis-light.json"), nonce,
@@ -129,7 +130,8 @@ public class CodeReplaceTest {
         // We test code replacement during initialization: this is forbitten.
 
         BigInteger nonce = config.getNetworkConstants().getInitialNonce();
-        Repository repository = new MutableRepository(new MutableTrieImpl(new Trie(new TrieStoreImpl(new HashMapDB()))));
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        Repository repository = new MutableRepository(new MutableTrieImpl(trieStore, new Trie(trieStore)));
         BlockChainImpl blockchain = org.ethereum.core.ImportLightTest.createBlockchain(
                 new TestGenesisLoader(
                         repository, getClass().getResourceAsStream("/genesis/genesis-light.json"), nonce,
@@ -164,7 +166,8 @@ public class CodeReplaceTest {
         TestSystemProperties oldConfig = config;
         config = new TestSystemProperties();
         BigInteger nonce = config.getNetworkConstants().getInitialNonce();
-        Repository repository = new MutableRepository(new MutableTrieImpl(new Trie(new TrieStoreImpl(new HashMapDB()))));
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        Repository repository = new MutableRepository(new MutableTrieImpl(trieStore, new Trie(trieStore)));
         BlockChainImpl blockchain = org.ethereum.core.ImportLightTest.createBlockchain(
                 new TestGenesisLoader(
                         repository, getClass().getResourceAsStream("/genesis/genesis-light.json"), nonce,

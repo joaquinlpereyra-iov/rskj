@@ -104,7 +104,7 @@ public class BlockBuilder {
             StateRootHandler stateRootHandler = new StateRootHandler(config.getActivationConfig(), new TrieConverter(), new HashMapDB(), new HashMap<>());
             BlockExecutor executor = new BlockExecutor(
                     config.getActivationConfig(),
-                    new RepositoryLocator(repository, stateRootHandler),
+                    new RepositoryLocator(repository.getTrie().getStore(), stateRootHandler),
                     stateRootHandler,
                     new TransactionExecutorFactory(
                             config,

@@ -286,7 +286,7 @@ public class TransactionModuleTest {
                 blockStore,
                 mineInstant,
                 stateRootHandler,
-                new RepositoryLocator(repository, stateRootHandler));
+                new RepositoryLocator(repository.getTrie().getStore(), stateRootHandler));
     }
 
     private Web3Impl createEnvironment(Blockchain blockchain, MiningMainchainView mainchainView, ReceiptStore receiptStore, TransactionPool transactionPool, BlockStore blockStore, boolean mineInstant, StateRootHandler stateRootHandler, RepositoryLocator repositoryLocator) {

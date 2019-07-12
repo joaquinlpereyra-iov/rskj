@@ -65,7 +65,7 @@ public class ImportLightTest {
 
                 null);
         StateRootHandler stateRootHandler = new StateRootHandler(config.getActivationConfig(), new TrieConverter(), new HashMapDB(), new HashMap<>());
-        RepositoryLocator repositoryLocator = new RepositoryLocator(repository, stateRootHandler);
+        RepositoryLocator repositoryLocator = new RepositoryLocator(repository.getTrie().getStore(), stateRootHandler);
 
         TransactionPoolImpl transactionPool = new TransactionPoolImpl(config, repositoryLocator, null, blockFactory, listener, transactionExecutorFactory, 10, 100);
 
@@ -80,7 +80,7 @@ public class ImportLightTest {
                 1,
                 new BlockExecutor(
                         config.getActivationConfig(),
-                        new RepositoryLocator(repository, stateRootHandler),
+                        new RepositoryLocator(repository.getTrie().getStore(), stateRootHandler),
                         stateRootHandler,
                         transactionExecutorFactory
                 ),

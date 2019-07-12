@@ -27,6 +27,7 @@ import co.rsk.db.MutableTrieImpl;
 import co.rsk.trie.MutableTrie;
 import co.rsk.trie.Trie;
 import co.rsk.trie.TrieKeySlice;
+import co.rsk.trie.TrieStore;
 import com.google.common.annotations.VisibleForTesting;
 import org.ethereum.core.AccountState;
 import org.ethereum.core.Repository;
@@ -47,8 +48,8 @@ public class MutableRepository implements Repository {
     private final TrieKeyMapper trieKeyMapper;
     private final MutableTrie mutableTrie;
 
-    public MutableRepository(Trie atrie) {
-        this(new MutableTrieImpl(atrie));
+    public MutableRepository(TrieStore trieStore, Trie trie) {
+        this(new MutableTrieImpl(trieStore, trie));
     }
 
     public MutableRepository(MutableTrie mutableTrie) {

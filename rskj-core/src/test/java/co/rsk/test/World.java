@@ -117,7 +117,7 @@ public class World {
         if (this.blockExecutor == null) {
             this.blockExecutor = new BlockExecutor(
                     config.getActivationConfig(),
-                    new RepositoryLocator(this.getRepository(), stateRootHandler),
+                    new RepositoryLocator(this.getRepository().getTrie().getStore(), stateRootHandler),
                     stateRootHandler,
                     new TransactionExecutorFactory(
                             config,
@@ -170,7 +170,7 @@ public class World {
     }
 
     public RepositoryLocator getRepositoryLocator() {
-        return new RepositoryLocator(getRepository(), getStateRootHandler());
+        return new RepositoryLocator(getRepository().getTrie().getStore(), getStateRootHandler());
     }
 
     public TransactionPool getTransactionPool() {

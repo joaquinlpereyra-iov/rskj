@@ -183,7 +183,8 @@ public abstract class BridgePerformanceTestCase extends PrecompiledContractPerfo
             private RepositoryTrackWithBenchmarking benchmarkerTrack;
 
             private Repository createRepository() {
-                return new MutableRepository(new Trie(new TrieStoreImpl(new HashMapDB())));
+                final Trie trie = new Trie(new TrieStoreImpl(new HashMapDB()));
+                return new MutableRepository(trie.getStore(), trie);
             }
 
             @Override
@@ -191,7 +192,7 @@ public abstract class BridgePerformanceTestCase extends PrecompiledContractPerfo
                 Repository repository = createRepository();
                 BridgeStorageConfiguration bridgeStorageConfigurationAtThisHeight = BridgeStorageConfiguration.fromBlockchainConfig(activationConfig.forBlock((long) executionIndex));
 
-                benchmarkerTrack = new RepositoryTrackWithBenchmarking(repository);
+                benchmarkerTrack = new RepositoryTrackWithBenchmarking(repository.getTrie().getStore(), repository.getTrie());
                 BridgeStorageProvider storageProvider = new BridgeStorageProvider(benchmarkerTrack, PrecompiledContracts.BRIDGE_ADDR, bridgeConstants, bridgeStorageConfigurationAtThisHeight);
                 storageInitializer.initialize(storageProvider, benchmarkerTrack, executionIndex);
                 try {
@@ -201,7 +202,7 @@ public abstract class BridgePerformanceTestCase extends PrecompiledContractPerfo
                 }
                 benchmarkerTrack.commit();
 
-                benchmarkerTrack = new RepositoryTrackWithBenchmarking(repository);
+                benchmarkerTrack = new RepositoryTrackWithBenchmarking(repository.getTrie().getStore(), repository.getTrie());
                 List<LogInfo> logs = new ArrayList<>();
 
                 Factory btcBlockStoreFactory = new RepositoryBtcBlockStoreWithCache.Factory(

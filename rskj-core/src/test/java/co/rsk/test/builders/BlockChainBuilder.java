@@ -151,7 +151,8 @@ public class BlockChainBuilder {
         }
 
         if (repository == null) {
-            repository = new MutableRepository(new Trie(new TrieStoreImpl(new HashMapDB().setClearOnClose(false))));
+            final Trie trie = new Trie(new TrieStoreImpl(new HashMapDB().setClearOnClose(false)));
+            repository = new MutableRepository(trie.getStore(), trie);
         }
 
         if (stateRootHandler == null) {
@@ -209,14 +210,14 @@ public class BlockChainBuilder {
                 new ProgramInvokeFactoryImpl(),
                 new PrecompiledContracts(config, bridgeSupportFactory)
         );
-        repositoryLocator = new RepositoryLocator(repository, stateRootHandler);
+        repositoryLocator = new RepositoryLocator(repository.getTrie().getStore(), stateRootHandler);
         transactionPool = new TransactionPoolImpl(
                 config, repositoryLocator, this.blockStore, blockFactory, new TestCompositeEthereumListener(),
                 transactionExecutorFactory, 10, 100
         );
         BlockExecutor blockExecutor = new BlockExecutor(
                 config.getActivationConfig(),
-                new RepositoryLocator(repository, stateRootHandler),
+                new RepositoryLocator(repository.getTrie().getStore(), stateRootHandler),
                 stateRootHandler,
                 transactionExecutorFactory
         );

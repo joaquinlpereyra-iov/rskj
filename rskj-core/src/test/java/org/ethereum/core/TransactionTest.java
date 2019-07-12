@@ -28,6 +28,7 @@ import co.rsk.db.MutableTrieImpl;
 import co.rsk.peg.BridgeSupportFactory;
 import co.rsk.peg.RepositoryBtcBlockStoreWithCache;
 import co.rsk.trie.Trie;
+import co.rsk.trie.TrieStore;
 import co.rsk.trie.TrieStoreImpl;
 import org.bouncycastle.util.BigIntegers;
 import org.bouncycastle.util.encoders.Hex;
@@ -591,7 +592,8 @@ public class TransactionTest {
          */
 
         BigInteger nonce = config.getNetworkConstants().getInitialNonce();
-        MutableRepository repository = new MutableRepository(new MutableTrieImpl(new Trie(new TrieStoreImpl(new HashMapDB()))));
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        MutableRepository repository = new MutableRepository(new MutableTrieImpl(trieStore, new Trie(trieStore)));
         Blockchain blockchain = ImportLightTest.createBlockchain(
                 new TestGenesisLoader(
                         repository, getClass().getResourceAsStream("/genesis/genesis-light.json"), nonce,
@@ -667,7 +669,8 @@ public class TransactionTest {
          */
 
         BigInteger nonce = config.getNetworkConstants().getInitialNonce();
-        MutableRepository repository = new MutableRepository(new MutableTrieImpl(new Trie(new TrieStoreImpl(new HashMapDB()))));
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        MutableRepository repository = new MutableRepository(new MutableTrieImpl(trieStore, new Trie(trieStore)));
         Blockchain blockchain = ImportLightTest.createBlockchain(
                 new TestGenesisLoader(
                         repository, getClass().getResourceAsStream("/genesis/genesis-light.json"), nonce,

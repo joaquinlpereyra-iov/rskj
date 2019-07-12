@@ -31,6 +31,7 @@ import co.rsk.peg.BtcBlockStoreWithCache.Factory;
 import co.rsk.peg.RepositoryBtcBlockStoreWithCache;
 import co.rsk.trie.Trie;
 import co.rsk.trie.TrieConverter;
+import co.rsk.trie.TrieStore;
 import co.rsk.trie.TrieStoreImpl;
 import org.bouncycastle.util.BigIntegers;
 import org.bouncycastle.util.encoders.Hex;
@@ -129,7 +130,7 @@ public class BlockExecutorTest {
         Assert.assertNotNull(accountState);
         Assert.assertEquals(BigInteger.valueOf(30000), accountState.getBalance().asBigInteger());
 
-        Repository finalRepository = new MutableRepository(repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()));
+        Repository finalRepository = new MutableRepository(repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()).getStore(), repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()));
 
         accountState = finalRepository.getAccountState(account);
 
@@ -186,7 +187,7 @@ public class BlockExecutorTest {
 
         // here is the papa. my commit changes stateroot while previous commit did not.
 
-        Repository finalRepository = new MutableRepository(repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()));
+        Repository finalRepository = new MutableRepository(repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()).getStore(), repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()));
 
         accountState = finalRepository.getAccountState(account);
 
@@ -199,7 +200,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository());
+        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
 
         BlockResult result = executor.execute(block, parent.getHeader(), false);
         executor.executeAndFill(block, parent.getHeader());
@@ -216,7 +217,8 @@ public class BlockExecutorTest {
 
     @Test
     public void executeAndFillBlockWithTxToExcludeBecauseSenderHasNoBalance() {
-        Repository repository = new MutableRepository(new MutableTrieImpl(new Trie(new TrieStoreImpl(new HashMapDB()))));
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        Repository repository = new MutableRepository(new MutableTrieImpl(trieStore, new Trie(trieStore)));
 
         Repository track = repository.startTracking();
 
@@ -228,7 +230,7 @@ public class BlockExecutorTest {
 
         Assert.assertFalse(Arrays.equals(EMPTY_TRIE_HASH, repository.getRoot()));
 
-        BlockExecutor executor = buildBlockExecutor(repository);
+        BlockExecutor executor = buildBlockExecutor(repository.getTrie().getStore());
 
         Transaction tx = createTransaction(
                 account,
@@ -268,7 +270,8 @@ public class BlockExecutorTest {
 
     @Test
     public void executeBlockWithTxThatMakesBlockInvalidSenderHasNoBalance() {
-        Repository repository = new MutableRepository(new MutableTrieImpl(new Trie(new TrieStoreImpl(new HashMapDB()))));
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        Repository repository = new MutableRepository(new MutableTrieImpl(trieStore, new Trie(trieStore)));
 
         Repository track = repository.startTracking();
 
@@ -280,7 +283,7 @@ public class BlockExecutorTest {
 
         Assert.assertFalse(Arrays.equals(EMPTY_TRIE_HASH, repository.getRoot()));
 
-        BlockExecutor executor = buildBlockExecutor(repository);
+        BlockExecutor executor = buildBlockExecutor(repository.getTrie().getStore());
 
         Transaction tx = createTransaction(
                 account,
@@ -315,7 +318,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository());
+        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
 
         Assert.assertTrue(executor.executeAndValidate(block, parent.getHeader()));
     }
@@ -325,7 +328,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository());
+        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
 
         byte[] stateRoot = block.getStateRoot();
         stateRoot[0] = (byte) ((stateRoot[0] + 1) % 256);
@@ -338,7 +341,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository());
+        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
 
         byte[] receiptsRoot = block.getReceiptsRoot();
         receiptsRoot[0] = (byte) ((receiptsRoot[0] + 1) % 256);
@@ -351,7 +354,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository());
+        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
 
         block.getHeader().setGasUsed(0);
 
@@ -363,7 +366,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository());
+        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
 
         block.getHeader().setPaidFees(Coin.ZERO);
 
@@ -375,7 +378,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository());
+        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
 
         byte[] logBloom = block.getLogBloom();
         logBloom[0] = (byte) ((logBloom[0] + 1) % 256);
@@ -384,7 +387,8 @@ public class BlockExecutorTest {
     }
 
     private static TestObjects generateBlockWithOneTransaction() {
-        Repository repository = new MutableRepository(new Trie(new TrieStoreImpl(new HashMapDB())));
+        final Trie trie = new Trie(new TrieStoreImpl(new HashMapDB()));
+        Repository repository = new MutableRepository(trie.getStore(), trie);
 
         Repository track = repository.startTracking();
 
@@ -395,7 +399,7 @@ public class BlockExecutorTest {
 
         Assert.assertFalse(Arrays.equals(EMPTY_TRIE_HASH, repository.getRoot()));
 
-        BlockExecutor executor = buildBlockExecutor(repository);
+        BlockExecutor executor = buildBlockExecutor(repository.getTrie().getStore());
 
         Transaction tx = createTransaction(
                 account,
@@ -519,7 +523,7 @@ public class BlockExecutorTest {
             TestObjects objects) {
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository());
+        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
         Repository repository = objects.getRepository();
         Transaction tx = objects.getTransaction();
         Account account = objects.getAccount();
@@ -567,7 +571,7 @@ public class BlockExecutorTest {
         Assert.assertNotNull(accountState);
         Assert.assertEquals(BigInteger.valueOf(30000), accountState.getBalance().asBigInteger());
 
-        Repository finalRepository = new MutableRepository(repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()));
+        Repository finalRepository = new MutableRepository(repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()).getStore(), repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()));
 
         accountState = finalRepository.getAccountState(account.getAddress());
 
@@ -576,7 +580,8 @@ public class BlockExecutorTest {
     }
 
     public TestObjects generateBlockWithOneStrangeTransaction(int strangeTransactionType) {
-        Repository repository = new MutableRepository(new Trie(new TrieStoreImpl(new HashMapDB())));
+        final Trie trie = new Trie(new TrieStoreImpl(new HashMapDB()));
+        Repository repository = new MutableRepository(trie.getStore(), trie);
         Repository track = repository.startTracking();
 
         Account account = createAccount("acctest1", track, Coin.valueOf(30000));
@@ -586,7 +591,7 @@ public class BlockExecutorTest {
 
         Assert.assertFalse(Arrays.equals(EMPTY_TRIE_HASH, repository.getRoot()));
 
-        BlockExecutor executor = buildBlockExecutor(repository);
+        BlockExecutor executor = buildBlockExecutor(repository.getTrie().getStore());
 
         List<Transaction> txs = new ArrayList<>();
         Transaction tx = createStrangeTransaction(
@@ -662,7 +667,7 @@ public class BlockExecutorTest {
         return digest.digest();
     }
 
-    private static BlockExecutor buildBlockExecutor(Repository repository) {
+    private static BlockExecutor buildBlockExecutor(TrieStore store) {
         StateRootHandler stateRootHandler = new StateRootHandler(
                 config.getActivationConfig(), new TrieConverter(), new HashMapDB(), new HashMap<>());
 
@@ -674,7 +679,7 @@ public class BlockExecutorTest {
 
         return new BlockExecutor(
                 config.getActivationConfig(),
-                new RepositoryLocator(repository, stateRootHandler),
+                new RepositoryLocator(store, stateRootHandler),
                 stateRootHandler,
                 new TransactionExecutorFactory(
                         config,
