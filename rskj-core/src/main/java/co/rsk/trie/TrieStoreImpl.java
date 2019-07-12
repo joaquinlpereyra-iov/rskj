@@ -38,7 +38,7 @@ public class TrieStoreImpl implements TrieStore {
     // a key value data source to use
     private KeyValueDataSource store;
 
-    Set<Trie> savedTries = Collections.newSetFromMap(new WeakHashMap<>());
+    private Set<Trie> savedTries = Collections.newSetFromMap(new WeakHashMap<>());
 
     public TrieStoreImpl(KeyValueDataSource store) {
         this.store = store;
