@@ -1060,6 +1060,25 @@ public class Trie {
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hashCode(getHash());
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (other == null || this.getClass() != other.getClass()) {
+            return false;
+        }
+
+        Trie otherTrie = (Trie) other;
+        return getHash().equals(otherTrie.getHash());
+    }
+
+    @Override
     public String toString() {
         String s = printParam("TRIE: ", "value", getValue());
         s = printParam(s, "hash0", left.getHash().orElse(null));
