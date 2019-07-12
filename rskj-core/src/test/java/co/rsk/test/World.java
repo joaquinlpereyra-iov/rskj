@@ -65,7 +65,7 @@ public class World {
     }
 
     public World(Repository repository) {
-        this(new BlockChainBuilder().setRepository(repository));
+        this(new BlockChainBuilder().setTrieStore(repository.getTrie().getStore()));
     }
 
     public World(ReceiptStore receiptStore) {

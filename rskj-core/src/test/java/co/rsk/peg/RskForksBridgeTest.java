@@ -22,7 +22,6 @@ import co.rsk.bitcoinj.core.*;
 import co.rsk.bitcoinj.params.RegTestParams;
 import co.rsk.config.BridgeRegTestConstants;
 import co.rsk.config.TestSystemProperties;
-import co.rsk.core.ReversibleTransactionExecutor;
 import co.rsk.core.RskAddress;
 import co.rsk.core.TransactionExecutorFactory;
 import co.rsk.core.bc.BlockChainImpl;
@@ -224,7 +223,7 @@ public class RskForksBridgeTest {
 
     private Block buildBlock(Block parent, long difficulty) {
         World world = new World(blockChain, repository, null, genesis);
-        BlockBuilder blockBuilder = new BlockBuilder(world.getBlockChain(), world.getBridgeSupportFactory()).repository(world.getRepository()).difficulty(difficulty).parent(parent);
+        BlockBuilder blockBuilder = new BlockBuilder(world.getBlockChain(), world.getBridgeSupportFactory()).trieStore(world.getRepository().getTrie().getStore()).difficulty(difficulty).parent(parent);
         return blockBuilder.build();
     }
 
@@ -235,7 +234,7 @@ public class RskForksBridgeTest {
     private Block buildBlock(Block parent, long difficulty, Transaction ... txs) {
         List<Transaction> txList = Arrays.asList(txs);
         World world = new World(blockChain, repository, null, genesis);
-        BlockBuilder blockBuilder = new BlockBuilder(world.getBlockChain(), world.getBridgeSupportFactory()).repository(world.getRepository()).difficulty(difficulty).parent(parent).transactions(txList).uncles(new ArrayList<>());
+        BlockBuilder blockBuilder = new BlockBuilder(world.getBlockChain(), world.getBridgeSupportFactory()).trieStore(world.getRepository().getTrie().getStore()).difficulty(difficulty).parent(parent).transactions(txList).uncles(new ArrayList<>());
         return blockBuilder.build();
     }
 

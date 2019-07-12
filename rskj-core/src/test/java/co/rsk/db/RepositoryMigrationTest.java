@@ -3,6 +3,7 @@ package co.rsk.db;
 import co.rsk.core.RskAddress;
 import co.rsk.trie.Trie;
 import co.rsk.trie.TrieConverter;
+import co.rsk.trie.TrieStore;
 import co.rsk.trie.TrieStoreImpl;
 import org.bouncycastle.util.encoders.Hex;
 import org.ethereum.core.AccountState;
@@ -25,8 +26,8 @@ public class RepositoryMigrationTest {
         final RskAddress COW = new RskAddress("CD2A3D9F938E13CD947EC05ABC7FE734DF8DD826");
         final BigInteger accountNonce = BigInteger.valueOf(9);
 
-        final Trie trie = new Trie(new TrieStoreImpl(new HashMapDB()));
-        Repository repository = new MutableRepository(trie.getStore(), trie);
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        Repository repository = new MutableRepository(trieStore, new Trie(trieStore));
         AccountState accountState = repository.createAccount(COW);
         accountState.setNonce(accountNonce);
         repository.updateAccountState(COW, accountState);

@@ -71,6 +71,7 @@ public class BlockExecutorTest {
 
     private Blockchain blockchain;
     private BlockExecutor executor;
+    private TrieStore trieStore;
     private Repository repository;
 
     @Before
@@ -78,6 +79,7 @@ public class BlockExecutorTest {
         RskTestFactory objects = new RskTestFactory(config);
         blockchain = objects.getBlockchain();
         executor = objects.getBlockExecutor();
+        trieStore = objects.getTrieStore();
         repository = objects.getRepository();
     }
 
@@ -130,7 +132,7 @@ public class BlockExecutorTest {
         Assert.assertNotNull(accountState);
         Assert.assertEquals(BigInteger.valueOf(30000), accountState.getBalance().asBigInteger());
 
-        Repository finalRepository = new MutableRepository(repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()).getStore(), repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()));
+        Repository finalRepository = new MutableRepository(trieStore, trieStore.retrieve(result.getFinalState().getHash().getBytes()));
 
         accountState = finalRepository.getAccountState(account);
 
@@ -187,7 +189,7 @@ public class BlockExecutorTest {
 
         // here is the papa. my commit changes stateroot while previous commit did not.
 
-        Repository finalRepository = new MutableRepository(repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()).getStore(), repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()));
+        Repository finalRepository = new MutableRepository(trieStore, trieStore.retrieve(result.getFinalState().getHash().getBytes()));
 
         accountState = finalRepository.getAccountState(account);
 
@@ -200,7 +202,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(objects.getTrieStore());
 
         BlockResult result = executor.execute(block, parent.getHeader(), false);
         executor.executeAndFill(block, parent.getHeader());
@@ -230,7 +232,7 @@ public class BlockExecutorTest {
 
         Assert.assertFalse(Arrays.equals(EMPTY_TRIE_HASH, repository.getRoot()));
 
-        BlockExecutor executor = buildBlockExecutor(repository.getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(trieStore);
 
         Transaction tx = createTransaction(
                 account,
@@ -283,7 +285,7 @@ public class BlockExecutorTest {
 
         Assert.assertFalse(Arrays.equals(EMPTY_TRIE_HASH, repository.getRoot()));
 
-        BlockExecutor executor = buildBlockExecutor(repository.getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(trieStore);
 
         Transaction tx = createTransaction(
                 account,
@@ -318,7 +320,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(objects.getTrieStore());
 
         Assert.assertTrue(executor.executeAndValidate(block, parent.getHeader()));
     }
@@ -328,7 +330,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(objects.getTrieStore());
 
         byte[] stateRoot = block.getStateRoot();
         stateRoot[0] = (byte) ((stateRoot[0] + 1) % 256);
@@ -341,7 +343,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(objects.getTrieStore());
 
         byte[] receiptsRoot = block.getReceiptsRoot();
         receiptsRoot[0] = (byte) ((receiptsRoot[0] + 1) % 256);
@@ -354,7 +356,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(objects.getTrieStore());
 
         block.getHeader().setGasUsed(0);
 
@@ -366,7 +368,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(objects.getTrieStore());
 
         block.getHeader().setPaidFees(Coin.ZERO);
 
@@ -378,7 +380,7 @@ public class BlockExecutorTest {
         TestObjects objects = generateBlockWithOneTransaction();
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(objects.getTrieStore());
 
         byte[] logBloom = block.getLogBloom();
         logBloom[0] = (byte) ((logBloom[0] + 1) % 256);
@@ -387,8 +389,8 @@ public class BlockExecutorTest {
     }
 
     private static TestObjects generateBlockWithOneTransaction() {
-        final Trie trie = new Trie(new TrieStoreImpl(new HashMapDB()));
-        Repository repository = new MutableRepository(trie.getStore(), trie);
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        Repository repository = new MutableRepository(trieStore, new Trie(trieStore));
 
         Repository track = repository.startTracking();
 
@@ -399,7 +401,7 @@ public class BlockExecutorTest {
 
         Assert.assertFalse(Arrays.equals(EMPTY_TRIE_HASH, repository.getRoot()));
 
-        BlockExecutor executor = buildBlockExecutor(repository.getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(trieStore);
 
         Transaction tx = createTransaction(
                 account,
@@ -425,8 +427,9 @@ public class BlockExecutorTest {
         Block block = new BlockGenerator().createChildBlock(genesis, txs, uncles, 1, null);
 
         executor.executeAndFill(block, genesis.getHeader());
+        repository.save();
 
-        return new TestObjects(repository, block, genesis, tx, account, rootPriorExecution);
+        return new TestObjects(trieStore, block, genesis, tx, account, rootPriorExecution);
     }
 
     private Block getBlockWithOneTransaction() {
@@ -523,8 +526,9 @@ public class BlockExecutorTest {
             TestObjects objects) {
         Block parent = objects.getParent();
         Block block = objects.getBlock();
-        BlockExecutor executor = buildBlockExecutor(objects.getRepository().getTrie().getStore());
-        Repository repository = objects.getRepository();
+        TrieStore trieStore = objects.getTrieStore();
+        BlockExecutor executor = buildBlockExecutor(trieStore);
+        Repository repository = new MutableRepository(trieStore, trieStore.retrieve(objects.getBlock().getStateRoot()));
         Transaction tx = objects.getTransaction();
         Account account = objects.getAccount();
 
@@ -571,7 +575,7 @@ public class BlockExecutorTest {
         Assert.assertNotNull(accountState);
         Assert.assertEquals(BigInteger.valueOf(30000), accountState.getBalance().asBigInteger());
 
-        Repository finalRepository = new MutableRepository(repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()).getStore(), repository.getTrie().getStore().retrieve(result.getFinalState().getHash().getBytes()));
+        Repository finalRepository = new MutableRepository(trieStore, trieStore.retrieve(result.getFinalState().getHash().getBytes()));
 
         accountState = finalRepository.getAccountState(account.getAddress());
 
@@ -580,8 +584,8 @@ public class BlockExecutorTest {
     }
 
     public TestObjects generateBlockWithOneStrangeTransaction(int strangeTransactionType) {
-        final Trie trie = new Trie(new TrieStoreImpl(new HashMapDB()));
-        Repository repository = new MutableRepository(trie.getStore(), trie);
+        TrieStore trieStore = new TrieStoreImpl(new HashMapDB());
+        Repository repository = new MutableRepository(trieStore, new Trie(trieStore));
         Repository track = repository.startTracking();
 
         Account account = createAccount("acctest1", track, Coin.valueOf(30000));
@@ -591,7 +595,7 @@ public class BlockExecutorTest {
 
         Assert.assertFalse(Arrays.equals(EMPTY_TRIE_HASH, repository.getRoot()));
 
-        BlockExecutor executor = buildBlockExecutor(repository.getTrie().getStore());
+        BlockExecutor executor = buildBlockExecutor(trieStore);
 
         List<Transaction> txs = new ArrayList<>();
         Transaction tx = createStrangeTransaction(
@@ -610,8 +614,9 @@ public class BlockExecutorTest {
         Block block = new BlockGenerator().createChildBlock(genesis, txs, uncles, 1, null);
 
         executor.executeAndFillReal(block, genesis.getHeader()); // Forces all transactions included
+        repository.save();
 
-        return new TestObjects(repository, block, genesis, tx, account);
+        return new TestObjects(trieStore, block, genesis, tx, account);
     }
 
     private byte[] calculateTxTrieRoot(List<Transaction> transactions, long blockNumber) {
@@ -693,7 +698,7 @@ public class BlockExecutorTest {
     }
 
     public static class TestObjects {
-        private Repository repository;
+        private TrieStore trieStore;
         private Block block;
         private Block parent;
         private Transaction transaction;
@@ -701,12 +706,8 @@ public class BlockExecutorTest {
         byte[] rootPriorExecution;
 
 
-        public byte[] getRootPriorExecution() {
-            return rootPriorExecution;
-        }
-
-        public TestObjects(Repository repository, Block block, Block parent, Transaction transaction, Account account) {
-            this.repository = repository;
+        public TestObjects(TrieStore trieStore, Block block, Block parent, Transaction transaction, Account account) {
+            this.trieStore = trieStore;
             this.block = block;
             this.parent = parent;
             this.transaction = transaction;
@@ -714,13 +715,13 @@ public class BlockExecutorTest {
         }
 
         public TestObjects(
-                Repository repository,
+                TrieStore trieStore,
                 Block block,
                 Block parent,
                 Transaction transaction,
                 Account account,
                 byte[] rootPriorExecution) {
-            this.repository = repository;
+            this.trieStore = trieStore;
             this.block = block;
             this.parent = parent;
             this.transaction = transaction;
@@ -728,8 +729,8 @@ public class BlockExecutorTest {
             this.rootPriorExecution = rootPriorExecution;
         }
 
-        public Repository getRepository() {
-            return this.repository;
+        public TrieStore getTrieStore() {
+            return this.trieStore;
         }
 
         public Block getBlock() {

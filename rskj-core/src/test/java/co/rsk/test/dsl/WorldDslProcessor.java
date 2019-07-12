@@ -54,7 +54,7 @@ public class WorldDslProcessor {
 
     public WorldDslProcessor(World world) {
         this.world = world;
-        BlockBuilder blockBuilder = new BlockBuilder(world.getBlockChain(), world.getBridgeSupportFactory()).repository(world.getRepository());
+        BlockBuilder blockBuilder = new BlockBuilder(world.getBlockChain(), world.getBridgeSupportFactory()).trieStore(world.getRepository().getTrie().getStore());
         blockBuilder.parent(world.getBlockChain().getBestBlock());
         this.blockBuilder = blockBuilder;
     }
