@@ -27,6 +27,7 @@ import co.rsk.remasc.RemascTransaction;
 import co.rsk.test.builders.BlockBuilder;
 import co.rsk.test.builders.BlockChainBuilder;
 import co.rsk.validators.BlockHeaderParentDependantValidationRule;
+import co.rsk.validators.BlockTxsValidationRule;
 import co.rsk.validators.ProofOfWorkRule;
 import org.ethereum.TestUtils;
 import org.ethereum.core.*;
