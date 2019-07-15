@@ -28,6 +28,7 @@ import co.rsk.core.bc.TransactionPoolImpl;
 import co.rsk.db.RepositoryLocator;
 import co.rsk.db.StateRootHandler;
 import co.rsk.trie.TrieConverter;
+import co.rsk.trie.TrieStore;
 import co.rsk.validators.DummyBlockValidator;
 import org.ethereum.datasource.HashMapDB;
 import org.ethereum.datasource.KeyValueDataSource;
@@ -46,7 +47,7 @@ import java.util.Map;
  */
 public class ImportLightTest {
 
-    public static BlockChainImpl createBlockchain(Genesis genesis, TestSystemProperties config, Repository repository) {
+    public static BlockChainImpl createBlockchain(Genesis genesis, TestSystemProperties config, Repository repository, TrieStore trieStore) {
         BlockFactory blockFactory = new BlockFactory(config.getActivationConfig());
         IndexedBlockStore blockStore = new IndexedBlockStore(blockFactory, new HashMap<>(), new HashMapDB(), null);
 
@@ -65,7 +66,7 @@ public class ImportLightTest {
 
                 null);
         StateRootHandler stateRootHandler = new StateRootHandler(config.getActivationConfig(), new TrieConverter(), new HashMapDB(), new HashMap<>());
-        RepositoryLocator repositoryLocator = new RepositoryLocator(repository.getTrie().getStore(), stateRootHandler);
+        RepositoryLocator repositoryLocator = new RepositoryLocator(trieStore, stateRootHandler);
 
         TransactionPoolImpl transactionPool = new TransactionPoolImpl(config, repositoryLocator, null, blockFactory, listener, transactionExecutorFactory, 10, 100);
 

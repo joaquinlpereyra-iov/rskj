@@ -35,19 +35,15 @@ import java.util.WeakHashMap;
  */
 public class TrieStoreImpl implements TrieStore {
 
-    // a key value data source to use
     private KeyValueDataSource store;
 
+    /** Weak references are removed once the tries are garbage collected */
     private Set<Trie> savedTries = Collections.newSetFromMap(new WeakHashMap<>());
 
     public TrieStoreImpl(KeyValueDataSource store) {
         this.store = store;
     }
 
-    /**
-     * save saves a Trie to the store
-     * @param trie
-     */
     @Override
     public void save(Trie trie) {
         save(trie, true);

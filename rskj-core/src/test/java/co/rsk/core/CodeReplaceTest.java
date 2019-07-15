@@ -72,7 +72,8 @@ public class CodeReplaceTest {
                         false, true, true
                 ).load(),
                 config,
-                repository
+                repository,
+                trieStore
         );
 
         ECKey sender = ECKey.fromPrivate(Hex.decode("3ec771c31cac8c0dba77a69e503765701d3c2bb62435888d4ffa38fed60c445c"));
@@ -138,7 +139,8 @@ public class CodeReplaceTest {
                         false, true, true
                 ).load(),
                 config,
-                repository
+                repository,
+                trieStore
         );
 
         ECKey sender = ECKey.fromPrivate(Hex.decode("3ec771c31cac8c0dba77a69e503765701d3c2bb62435888d4ffa38fed60c445c"));
@@ -174,7 +176,8 @@ public class CodeReplaceTest {
                         false, true, true
                 ).load(),
                 config,
-                repository
+                repository,
+                trieStore
         );
 
         ECKey sender = ECKey.fromPrivate(Hex.decode("3ec771c31cac8c0dba77a69e503765701d3c2bb62435888d4ffa38fed60c445c"));
