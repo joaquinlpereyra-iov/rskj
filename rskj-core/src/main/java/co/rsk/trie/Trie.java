@@ -912,10 +912,6 @@ public class Trie {
         return new Trie(this.store, commonPath, null, newLeft, newRight, Uint24.ZERO, null);
     }
 
-    public boolean hasStore() {
-        return this.store != null;
-    }
-
     public boolean isTerminal() {
         return this.left.isEmpty() && this.right.isEmpty();
     }
@@ -939,11 +935,6 @@ public class Trie {
         }
 
         return left.isEmpty() && right.isEmpty();
-    }
-
-    @Nullable
-    public TrieStore getStore() {
-        return this.store;
     }
 
     public boolean hasLongValue() {

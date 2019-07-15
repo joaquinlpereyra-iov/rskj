@@ -309,9 +309,7 @@ public class MutableRepository implements Repository {
 
     @Override
     public synchronized byte[] getRoot() {
-        if (mutableTrie.hasStore()) {
-            mutableTrie.save();
-        }
+        mutableTrie.save();
 
         Keccak256 rootHash = mutableTrie.getHash();
         logger.trace("getting repository root hash {}", rootHash);

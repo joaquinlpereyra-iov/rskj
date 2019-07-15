@@ -132,11 +132,6 @@ public class MutableTrieImpl implements MutableTrie {
         return trie.collectKeys(size);
     }
 
-    @Override
-    public boolean hasStore() {
-        return trie.hasStore();
-    }
-
     private static class StorageKeysIterator implements Iterator<DataWord> {
         private final Iterator<Trie.IterationElement> storageIterator;
         private final int storageKeyOffset;
