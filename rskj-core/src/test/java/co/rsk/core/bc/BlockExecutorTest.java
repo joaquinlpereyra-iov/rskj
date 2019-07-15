@@ -520,7 +520,7 @@ public class BlockExecutorTest {
         executeBlockWithOneStrangeTransaction(false, false, generateBlockWithOneStrangeTransaction(2));
     }
 
-    public void executeBlockWithOneStrangeTransaction(
+    private void executeBlockWithOneStrangeTransaction(
             boolean mustFailValidation,
             boolean mustFailExecution,
             TestObjects objects) {
@@ -528,7 +528,7 @@ public class BlockExecutorTest {
         Block block = objects.getBlock();
         TrieStore trieStore = objects.getTrieStore();
         BlockExecutor executor = buildBlockExecutor(trieStore);
-        Repository repository = new MutableRepository(trieStore, trieStore.retrieve(objects.getBlock().getStateRoot()));
+        Repository repository = new MutableRepository(trieStore, trieStore.retrieve(objects.getParent().getStateRoot()));
         Transaction tx = objects.getTransaction();
         Account account = objects.getAccount();
 
