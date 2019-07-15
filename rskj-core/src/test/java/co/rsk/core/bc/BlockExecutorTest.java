@@ -626,13 +626,6 @@ public class BlockExecutorTest {
         );
     }
 
-    private byte[] calculateReceiptsTrieRoot(List<TransactionReceipt> transactionReceipts, long blockNumber) {
-        return BlockHashesHelper.calculateReceiptsTrieRoot(
-                transactionReceipts,
-                config.getActivationConfig().isActive(ConsensusRule.RSKIP126, blockNumber)
-        );
-    }
-
     private static Transaction createStrangeTransaction(
             Account sender, Account receiver,
             BigInteger value, BigInteger nonce, int strangeTransactionType) {
